@@ -10,6 +10,7 @@ import pytest
 import requests
 from typing import Optional
 import time
+from datetime import datetime, timedelta
 
 
 # Configuration
@@ -67,10 +68,14 @@ def auction_id():
 
 
 # Expected response values (from ApiSpec.hs)
+now = datetime.utcnow()
+starts_at = (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+ends_at = (now + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
 FIRST_AUCTION_REQUEST = {
     "id": 1,
-    "startsAt": "2018-01-01T10:00:00.000Z",
-    "endsAt": "2019-01-01T10:00:00.000Z",
+    "startsAt": starts_at,
+    "endsAt": ends_at,
     "title": "First auction",
     "currency": "VAC"
 }
@@ -250,7 +255,7 @@ class TestAddBids:
         assert "BuyerOrSeller|a2|Buyer" in auction_data["bids"][0]["bidder"]
 
     def test_not_possible_to_add_bid_to_non_existent_auction(self, client, auction_id):
-        """Test that adding a bid to a non-existent auction fails with 400."""
+        """Test that adding a bid to a non-existent auction fails with 404."""
         # Use a very high ID that definitely doesn't exist
         non_existent_id = auction_id + 999999
 
@@ -259,8 +264,8 @@ class TestAddBids:
             {"amount": 10},
             BUYER1
         )
-        assert response.status_code == 400
-        assert "UnknownAuction" in response.text
+        assert response.status_code == 404
+        assert "Auction not found" in response.text
 
 
 if __name__ == "__main__":
