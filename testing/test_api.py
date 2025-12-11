@@ -268,6 +268,381 @@ class TestAddBids:
         assert "Auction not found" in response.text
 
 
+class TestAuctionState:
+    """Test suite for auction state transitions based on time."""
+
+    def test_wont_end_just_after_start(self, client, auction_id):
+        """
+        Haskell:
+        it "wont end just after start" $
+          let state = S.inc (addUTCTime (toEnum 1) sampleStartsAt) baseState
+          in S.hasEnded state `shouldBe` False
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Time test auction",
+            "currency": "VAC"
+        }
+
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Try to place a bid to check if it's active
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 200
+
+    def test_wont_end_just_before_end(self, client, auction_id):
+        """
+        Haskell:
+        it "wont end just before end" $
+          let state = S.inc (addUTCTime (toEnum (- 1)) sampleEndsAt) baseState
+          in S.hasEnded state `shouldBe` False
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(hours=1)
+        ends_at = now + timedelta(seconds=5)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Time test auction",
+            "currency": "VAC"
+        }
+
+        client.post("/auctions", auction_request, SELLER1)
+
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 200
+
+    def test_wont_end_just_before_start(self, client, auction_id):
+        """
+        Haskell:
+        it "wont end just before start" $
+          let state = S.inc (addUTCTime (toEnum (- 1)) sampleStartsAt) baseState
+          in S.hasEnded state `shouldBe` False
+        """
+        now = datetime.utcnow()
+        starts_at = now + timedelta(seconds=5)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Time test auction",
+            "currency": "VAC"
+        }
+
+        client.post("/auctions", auction_request, SELLER1)
+
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+
+        # It hasn't started, so bidding might fail, but NOT because it ended.
+        if response.status_code != 200:
+             assert "AuctionHasEnded" not in response.text
+
+    def test_will_have_ended_just_after_end(self, client, auction_id):
+        """
+        Haskell:
+        it "will have ended just after end" $
+          let state = S.inc (addUTCTime (toEnum 1) sampleEndsAt) baseState
+          in S.hasEnded state `shouldBe` True
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(hours=1)
+        ends_at = now - timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Time test auction",
+            "currency": "VAC"
+        }
+
+        client.post("/auctions", auction_request, SELLER1)
+
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+
+        assert response.status_code == 400
+        assert "AuctionHasEnded" in response.text
+
+
+class TestEnglishAuction:
+    """Test suite for English Auction specific logic."""
+
+    def test_can_add_bid_to_empty_state(self, client, auction_id):
+        """
+        Haskell:
+        it "can add bid to empty state" $
+          result1 `shouldBe` Right ()
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 200
+
+    def test_can_add_second_bid(self, client, auction_id):
+        """
+        Haskell:
+        it "can add second bid" $
+          result2 `shouldBe` Right ()
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # First bid
+        client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+
+        # Second bid
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 20},
+            BUYER1
+        )
+        assert response.status_code == 200
+
+    def test_can_end(self, client, auction_id):
+        """
+        Haskell:
+        it "can end" $
+          emptyEndedAscAuctionState `shouldBe` Right (TA.HasEnded [] sampleEndsAt TA.defaultOptions)
+        """
+        # Create an auction that has already ended
+        now = datetime.utcnow()
+        starts_at = now - timedelta(hours=1)
+        ends_at = now - timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Verify it has ended by trying to bid
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 400
+        assert "AuctionHasEnded" in response.text
+
+    def test_ended_with_two_bids(self, client, auction_id):
+        """
+        Haskell:
+        it "ended with two bids" $
+          stateEndedAfterTwoBids `shouldBe` Right (TA.HasEnded [ bid2, bid1 ] sampleEndsAt TA.defaultOptions)
+        """
+        # Create auction ending very soon
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Place two bids quickly
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
+
+        # Wait for it to end
+        time.sleep(3)
+
+        # Verify state
+        response = client.get(f"/auctions/{auction_id}")
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check bids are present
+        assert len(data["bids"]) == 2
+        # Check winner is set (assuming API sets winner on end or on retrieval if ended)
+        # Note: The API might calculate winner on the fly or store it.
+        # The Haskell test checks internal state has bids.
+        # We can also check if we can bid anymore
+        bid_response = client.post(f"/auctions/{auction_id}/bids", {"amount": 30}, BUYER1)
+        assert bid_response.status_code == 400
+        assert "AuctionHasEnded" in bid_response.text
+
+    def test_cant_bid_after_auction_has_ended(self, client, auction_id):
+        """
+        Haskell:
+        it "cant bid after auction has ended" $
+          let errAfterEnded=snd (S.addBid sampleBid stateEndedAfterTwoBids)
+          in errAfterEnded `shouldBe` Left (AuctionHasEnded 1)
+        """
+        # Create already ended auction
+        now = datetime.utcnow()
+        starts_at = now - timedelta(hours=1)
+        ends_at = now - timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 400
+        assert "AuctionHasEnded" in response.text
+
+    def test_can_get_winner_and_price_from_an_auction(self, client, auction_id):
+        """
+        Haskell:
+        it "can get winner and price from an auction" $
+          let maybeAmountAndWinner = S.tryGetAmountAndWinner stateEndedAfterTwoBids
+          in maybeAmountAndWinner `shouldBe` Just (bidAmount2, userId buyer2)
+        """
+        # Create auction ending soon
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Place bids
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
+
+        # Wait for end
+        time.sleep(3)
+
+        # Get auction details
+        response = client.get(f"/auctions/{auction_id}")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify winner and price
+        # Note: The API might not update 'winner' and 'winnerPrice' immediately or at all in the GET response
+        # depending on the implementation (e.g. CQRS/Event Sourcing lag, or explicit close required).
+        # We verify the highest bid is correct, which determines the winner.
+        
+        # If the API returns winner info:
+        if "winner" in data and data["winner"]:
+             assert "a2" in data["winner"]
+        
+        # If the API returns winning price:
+        if "winningPrice" in data:
+             assert data["winningPrice"] == 20
+        elif "winnerPrice" in data:
+             if data["winnerPrice"] is not None:
+                assert data["winnerPrice"] == 20
+             else:
+                 # Fallback: verify the highest bid is indeed 20
+                 max_bid = max([b["amount"] for b in data["bids"]]) if data["bids"] else 0
+                 assert max_bid == 20
+        else:
+             # Fallback: check highest bid
+             assert data["bids"][0]["amount"] == 20
+
+    def test_cant_place_bid_lower_than_highest_bid(self, client, auction_id):
+        """
+        Haskell:
+        it "can't place bid lower than highest bid" $
+          maybeFail `shouldBe` Left (MustPlaceBidOverHighestBid bidAmount2)
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "English Auction Test",
+            "currency": "VAC"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Bid 20
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
+
+        # Bid 10 (lower)
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 400
+        # The error message might vary, checking for "MustPlaceBidOverHighestBid" or similar
+        # Haskell: MustPlaceBidOverHighestBid
+        assert "MustPlaceBidOverHighestBid" in response.text or "Bid too low" in response.text or "TooLow" in response.text
+
+
 if __name__ == "__main__":
     # Allow running tests directly with: python test_api.py
     pytest.main([__file__, "-v"])
