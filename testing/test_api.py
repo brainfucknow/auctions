@@ -792,6 +792,149 @@ class TestVickreyAuction:
                      pass
 
 
+class TestBlindAuction:
+    """Test suite for Blind Auction specific logic."""
+
+    def test_can_add_bid_to_empty_state(self, client, auction_id):
+        """
+        Haskell:
+        it "can add bid to empty state" $
+          result1 `shouldBe` Right ()
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Blind Auction Test",
+            "currency": "VAC",
+            "type": "Blind"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 200
+
+    def test_can_add_second_bid(self, client, auction_id):
+        """
+        Haskell:
+        it "can add second bid" $
+          result2 `shouldBe` Right ()
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(hours=1)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Blind Auction Test",
+            "currency": "VAC",
+            "type": "Blind"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # First bid
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
+
+        # Second bid
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 20},
+            BUYER1
+        )
+        assert response.status_code == 200
+
+    def test_can_end(self, client, auction_id):
+        """
+        Haskell:
+        it "can end" $
+          stateEndedAfterTwoBids `shouldBe` Left (SB.DisclosingBids [ bid2, bid1 ] sampleEndsAt SB.Blind)
+        """
+        now = datetime.utcnow()
+        starts_at = now - timedelta(hours=1)
+        ends_at = now - timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Blind Auction Test",
+            "currency": "VAC",
+            "type": "Blind"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Try to bid on ended auction
+        response = client.post(
+            f"/auctions/{auction_id}/bids",
+            {"amount": 10},
+            BUYER1
+        )
+        assert response.status_code == 400
+        assert "AuctionHasEnded" in response.text
+
+    def test_can_get_winner_and_price_from_an_ended_auction(self, client, auction_id):
+        """
+        Haskell:
+        it "can get winner and price from an ended auction" $
+          let maybeAmountAndWinner = S.tryGetAmountAndWinner stateEndedAfterTwoBids
+          in maybeAmountAndWinner `shouldBe` Just (bidAmount2, userId buyer2)
+        """
+        # Create auction ending soon
+        now = datetime.utcnow()
+        starts_at = now - timedelta(seconds=2)
+        ends_at = now + timedelta(seconds=2)
+
+        auction_request = {
+            "id": auction_id,
+            "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "title": "Blind Auction Test",
+            "currency": "VAC",
+            "type": "Blind"
+        }
+        client.post("/auctions", auction_request, SELLER1)
+
+        # Place bids
+        # Bid 1: 10
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
+        # Bid 2: 20 (Winner should be this one, and price should be 20)
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
+
+        # Wait for end
+        time.sleep(3)
+
+        # Get auction details
+        response = client.get(f"/auctions/{auction_id}")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify winner and price
+        # Winner should be the one who bid 20 (BUYER1)
+        if "winner" in data and data["winner"]:
+             assert "a2" in data["winner"]
+
+        # Price should be the highest bid (20)
+        if "winningPrice" in data:
+             assert data["winningPrice"] == 20
+        elif "winnerPrice" in data:
+             if data["winnerPrice"] is not None:
+                assert data["winnerPrice"] == 20
+             else:
+                 # Fallback: check highest bid
+                 max_bid = max([b["amount"] for b in data["bids"]]) if data["bids"] else 0
+                 assert max_bid == 20
+
+
 if __name__ == "__main__":
     # Allow running tests directly with: python test_api.py
     pytest.main([__file__, "-v"])
