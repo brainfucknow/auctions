@@ -26,7 +26,7 @@ class ApiClient:
     """Helper class for making API requests with authentication."""
 
     def __init__(self, base_url: str = BASE_URL):
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
 
     def get(self, path: str, jwt_payload: Optional[str] = None) -> requests.Response:
@@ -36,16 +36,14 @@ class ApiClient:
             headers["x-jwt-payload"] = jwt_payload
         return self.session.get(f"{self.base_url}{path}", headers=headers)
 
-    def post(self, path: str, data: dict, jwt_payload: Optional[str] = None) -> requests.Response:
+    def post(
+        self, path: str, data: dict, jwt_payload: Optional[str] = None
+    ) -> requests.Response:
         """Make POST request with JSON data and optional JWT header."""
         headers = {"Content-Type": "application/json"}
         if jwt_payload:
             headers["x-jwt-payload"] = jwt_payload
-        return self.session.post(
-            f"{self.base_url}{path}",
-            json=data,
-            headers=headers
-        )
+        return self.session.post(f"{self.base_url}{path}", json=data, headers=headers)
 
 
 def get_unique_auction_id():
@@ -77,7 +75,7 @@ FIRST_AUCTION_REQUEST = {
     "startsAt": starts_at,
     "endsAt": ends_at,
     "title": "First auction",
-    "currency": "VAC"
+    "currency": "VAC",
 }
 
 AUCTION_ADDED_EVENT = {
@@ -90,8 +88,8 @@ AUCTION_ADDED_EVENT = {
         "expiry": "2019-01-01T10:00:00Z",
         "user": "BuyerOrSeller|a1|Test",
         "type": "English|0|0|0",
-        "currency": "VAC"
-    }
+        "currency": "VAC",
+    },
 }
 
 BID_ACCEPTED_EVENT = {
@@ -101,8 +99,8 @@ BID_ACCEPTED_EVENT = {
         "auction": 1,
         "user": "BuyerOrSeller|a2|Buyer",
         "amount": 11,
-        "at": "2018-08-04T00:00:00Z"
-    }
+        "at": "2018-08-04T00:00:00Z",
+    },
 }
 
 AUCTION_WITHOUT_BIDS = {
@@ -113,7 +111,7 @@ AUCTION_WITHOUT_BIDS = {
     "title": "First auction",
     "bids": [],
     "winner": None,
-    "winnerPrice": None
+    "winnerPrice": None,
 }
 
 AUCTION_WITH_BID = {
@@ -122,14 +120,9 @@ AUCTION_WITH_BID = {
     "id": 1,
     "startsAt": "2018-01-01T10:00:00Z",
     "title": "First auction",
-    "bids": [
-        {
-            "amount": 11,
-            "bidder": "BuyerOrSeller|a2|Buyer"
-        }
-    ],
+    "bids": [{"amount": 11, "bidder": "BuyerOrSeller|a2|Buyer"}],
     "winner": None,
-    "winnerPrice": None
+    "winnerPrice": None,
 }
 
 
@@ -215,9 +208,7 @@ class TestAddBids:
 
         # Then add bid
         bid_response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 11},
-            BUYER1
+            f"/auctions/{auction_id}/bids", {"amount": 11}, BUYER1
         )
         assert bid_response.status_code == 200
 
@@ -238,9 +229,7 @@ class TestAddBids:
 
         # Add bid
         bid_response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 11},
-            BUYER1
+            f"/auctions/{auction_id}/bids", {"amount": 11}, BUYER1
         )
         assert bid_response.status_code == 200
 
@@ -260,9 +249,7 @@ class TestAddBids:
         non_existent_id = auction_id + 999999
 
         response = client.post(
-            f"/auctions/{non_existent_id}/bids",
-            {"amount": 10},
-            BUYER1
+            f"/auctions/{non_existent_id}/bids", {"amount": 10}, BUYER1
         )
         assert response.status_code == 404
         assert "Auction not found" in response.text
@@ -287,17 +274,13 @@ class TestAuctionState:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Time test auction",
-            "currency": "VAC"
+            "currency": "VAC",
         }
 
         client.post("/auctions", auction_request, SELLER1)
 
         # Try to place a bid to check if it's active
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 200
 
     def test_wont_end_just_before_end(self, client, auction_id):
@@ -316,16 +299,12 @@ class TestAuctionState:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Time test auction",
-            "currency": "VAC"
+            "currency": "VAC",
         }
 
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 200
 
     def test_wont_end_just_before_start(self, client, auction_id):
@@ -344,20 +323,16 @@ class TestAuctionState:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Time test auction",
-            "currency": "VAC"
+            "currency": "VAC",
         }
 
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
 
         # It hasn't started, so bidding might fail, but NOT because it ended.
         if response.status_code != 200:
-             assert "AuctionHasEnded" not in response.text
+            assert "AuctionHasEnded" not in response.text
 
     def test_will_have_ended_just_after_end(self, client, auction_id):
         """
@@ -375,16 +350,12 @@ class TestAuctionState:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Time test auction",
-            "currency": "VAC"
+            "currency": "VAC",
         }
 
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
 
         assert response.status_code == 400
         assert "AuctionHasEnded" in response.text
@@ -408,15 +379,11 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 200
 
     def test_can_add_second_bid(self, client, auction_id):
@@ -434,23 +401,15 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
         # First bid
-        client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
 
         # Second bid
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 20},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
         assert response.status_code == 200
 
     def test_can_end(self, client, auction_id):
@@ -469,16 +428,12 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
         # Verify it has ended by trying to bid
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 400
         assert "AuctionHasEnded" in response.text
 
@@ -498,7 +453,7 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -513,14 +468,16 @@ class TestEnglishAuction:
         response = client.get(f"/auctions/{auction_id}")
         assert response.status_code == 200
         data = response.json()
-        
+
         # Check bids are present
         assert len(data["bids"]) == 2
         # Check winner is set (assuming API sets winner on end or on retrieval if ended)
         # Note: The API might calculate winner on the fly or store it.
         # The Haskell test checks internal state has bids.
         # We can also check if we can bid anymore
-        bid_response = client.post(f"/auctions/{auction_id}/bids", {"amount": 30}, BUYER1)
+        bid_response = client.post(
+            f"/auctions/{auction_id}/bids", {"amount": 30}, BUYER1
+        )
         assert bid_response.status_code == 400
         assert "AuctionHasEnded" in bid_response.text
 
@@ -541,15 +498,11 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 400
         assert "AuctionHasEnded" in response.text
 
@@ -570,7 +523,7 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -590,24 +543,24 @@ class TestEnglishAuction:
         # Note: The API might not update 'winner' and 'winnerPrice' immediately or at all in the GET response
         # depending on the implementation (e.g. CQRS/Event Sourcing lag, or explicit close required).
         # We verify the highest bid is correct, which determines the winner.
-        
+
         # If the API returns winner info:
         if "winner" in data and data["winner"]:
-             assert "a2" in data["winner"]
-        
+            assert "a2" in data["winner"]
+
         # If the API returns winning price:
-        if "winningPrice" in data:
-             assert data["winningPrice"] == 20
-        elif "winnerPrice" in data:
-             if data["winnerPrice"] is not None:
+        if "winnerPrice" in data:
+            if data["winnerPrice"] is not None:
                 assert data["winnerPrice"] == 20
-             else:
-                 # Fallback: verify the highest bid is indeed 20
-                 max_bid = max([b["amount"] for b in data["bids"]]) if data["bids"] else 0
-                 assert max_bid == 20
+            else:
+                # Fallback: verify the highest bid is indeed 20
+                max_bid = (
+                    max([b["amount"] for b in data["bids"]]) if data["bids"] else 0
+                )
+                assert max_bid == 20
         else:
-             # Fallback: check highest bid
-             assert data["bids"][0]["amount"] == 20
+            # Fallback: check highest bid
+            assert data["bids"][0]["amount"] == 20
 
     def test_cant_place_bid_lower_than_highest_bid(self, client, auction_id):
         """
@@ -624,7 +577,7 @@ class TestEnglishAuction:
             "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "English Auction Test",
-            "currency": "VAC"
+            "currency": "VAC",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -632,15 +585,15 @@ class TestEnglishAuction:
         client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
 
         # Bid 10 (lower)
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 400
         # The error message might vary, checking for "MustPlaceBidOverHighestBid" or similar
         # Haskell: MustPlaceBidOverHighestBid
-        assert "MustPlaceBidOverHighestBid" in response.text or "Bid too low" in response.text or "TooLow" in response.text
+        assert (
+            "MustPlaceBidOverHighestBid" in response.text
+            or "Bid too low" in response.text
+            or "TooLow" in response.text
+        )
 
 
 class TestVickreyAuction:
@@ -662,15 +615,11 @@ class TestVickreyAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Vickrey Auction Test",
             "currency": "VAC",
-            "type": "Vickrey"
+            "type": "Vickrey",
         }
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 200
 
     def test_can_add_second_bid(self, client, auction_id):
@@ -689,7 +638,7 @@ class TestVickreyAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Vickrey Auction Test",
             "currency": "VAC",
-            "type": "Vickrey"
+            "type": "Vickrey",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -697,11 +646,7 @@ class TestVickreyAuction:
         client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
 
         # Second bid
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 20},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
         assert response.status_code == 200
 
     def test_can_end(self, client, auction_id):
@@ -720,16 +665,12 @@ class TestVickreyAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Vickrey Auction Test",
             "currency": "VAC",
-            "type": "Vickrey"
+            "type": "Vickrey",
         }
         client.post("/auctions", auction_request, SELLER1)
 
         # Try to bid on ended auction
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 400
         assert "AuctionHasEnded" in response.text
 
@@ -751,7 +692,7 @@ class TestVickreyAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Vickrey Auction Test",
             "currency": "VAC",
-            "type": "Vickrey"
+            "type": "Vickrey",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -772,24 +713,22 @@ class TestVickreyAuction:
         # Verify winner and price
         # Winner should be the one who bid 20 (BUYER1)
         if "winner" in data and data["winner"]:
-             assert "a2" in data["winner"]
+            assert "a2" in data["winner"]
 
         # Price should be the second highest bid (10)
-        if "winningPrice" in data:
-             assert data["winningPrice"] == 10
-        elif "winnerPrice" in data:
-             if data["winnerPrice"] is not None:
+        if "winnerPrice" in data:
+            if data["winnerPrice"] is not None:
                 assert data["winnerPrice"] == 10
-             else:
-                 # If API hasn't computed it yet, we can't verify it easily without forcing computation.
-                 # But for Vickrey, the price IS the second highest bid.
-                 # Let's check if we can infer it from bids if they are disclosed (which they should be after end).
-                 bids = sorted([b["amount"] for b in data["bids"]], reverse=True)
-                 if len(bids) >= 2:
-                     assert bids[1] == 10
-                 elif len(bids) == 1:
-                     # If only one bid, price is usually reserve price or start price (0 here).
-                     pass
+            else:
+                # If API hasn't computed it yet, we can't verify it easily without forcing computation.
+                # But for Vickrey, the price IS the second highest bid.
+                # Let's check if we can infer it from bids if they are disclosed (which they should be after end).
+                bids = sorted([b["amount"] for b in data["bids"]], reverse=True)
+                if len(bids) >= 2:
+                    assert bids[1] == 10
+                elif len(bids) == 1:
+                    # If only one bid, price is usually reserve price or start price (0 here).
+                    pass
 
 
 class TestBlindAuction:
@@ -811,15 +750,11 @@ class TestBlindAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Blind Auction Test",
             "currency": "VAC",
-            "type": "Blind"
+            "type": "Blind",
         }
         client.post("/auctions", auction_request, SELLER1)
 
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 200
 
     def test_can_add_second_bid(self, client, auction_id):
@@ -838,7 +773,7 @@ class TestBlindAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Blind Auction Test",
             "currency": "VAC",
-            "type": "Blind"
+            "type": "Blind",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -846,11 +781,7 @@ class TestBlindAuction:
         client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
 
         # Second bid
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 20},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 20}, BUYER1)
         assert response.status_code == 200
 
     def test_can_end(self, client, auction_id):
@@ -869,16 +800,12 @@ class TestBlindAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Blind Auction Test",
             "currency": "VAC",
-            "type": "Blind"
+            "type": "Blind",
         }
         client.post("/auctions", auction_request, SELLER1)
 
         # Try to bid on ended auction
-        response = client.post(
-            f"/auctions/{auction_id}/bids",
-            {"amount": 10},
-            BUYER1
-        )
+        response = client.post(f"/auctions/{auction_id}/bids", {"amount": 10}, BUYER1)
         assert response.status_code == 400
         assert "AuctionHasEnded" in response.text
 
@@ -900,7 +827,7 @@ class TestBlindAuction:
             "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "title": "Blind Auction Test",
             "currency": "VAC",
-            "type": "Blind"
+            "type": "Blind",
         }
         client.post("/auctions", auction_request, SELLER1)
 
@@ -921,18 +848,18 @@ class TestBlindAuction:
         # Verify winner and price
         # Winner should be the one who bid 20 (BUYER1)
         if "winner" in data and data["winner"]:
-             assert "a2" in data["winner"]
+            assert "a2" in data["winner"]
 
         # Price should be the highest bid (20)
-        if "winningPrice" in data:
-             assert data["winningPrice"] == 20
-        elif "winnerPrice" in data:
-             if data["winnerPrice"] is not None:
+        if "winnerPrice" in data:
+            if data["winnerPrice"] is not None:
                 assert data["winnerPrice"] == 20
-             else:
-                 # Fallback: check highest bid
-                 max_bid = max([b["amount"] for b in data["bids"]]) if data["bids"] else 0
-                 assert max_bid == 20
+            else:
+                # Fallback: check highest bid
+                max_bid = (
+                    max([b["amount"] for b in data["bids"]]) if data["bids"] else 0
+                )
+                assert max_bid == 20
 
 
 if __name__ == "__main__":

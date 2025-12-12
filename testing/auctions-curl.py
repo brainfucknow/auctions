@@ -13,14 +13,21 @@ from datetime import datetime, timedelta, timezone
 try:
     import requests
 except ImportError:
-    print("Error: requests library not found. Install with: pip install requests", file=sys.stderr)
+    print(
+        "Error: requests library not found. Install with: pip install requests",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
 # Configuration from environment variables
 URL = os.environ.get("URL", "http://127.0.0.1:8080")
-SELLER = os.environ.get("SELLER", "eyJzdWIiOiJhMSIsICJuYW1lIjoiVGVzdCIsICJ1X3R5cCI6IjAifQo=")
-BUYER = os.environ.get("BUYER", "eyJzdWIiOiJhMiIsICJuYW1lIjoiQnV5ZXIiLCAidV90eXAiOiIwIn0K")
+SELLER = os.environ.get(
+    "SELLER", "eyJzdWIiOiJhMSIsICJuYW1lIjoiVGVzdCIsICJ1X3R5cCI6IjAifQo="
+)
+BUYER = os.environ.get(
+    "BUYER", "eyJzdWIiOiJhMiIsICJuYW1lIjoiQnV5ZXIiLCAidV90eXAiOiIwIn0K"
+)
 
 
 def print_response(status_label, body, http_code=None):
@@ -55,13 +62,10 @@ def create_auction():
         "startsAt": starts_at,
         "endsAt": ends_at,
         "title": "Some auction",
-        "currency": "VAC"
+        "currency": "VAC",
     }
     url = f"{URL.rstrip('/')}/auctions"
-    headers = {
-        "Content-Type": "application/json",
-        "x-jwt-payload": SELLER
-    }
+    headers = {"Content-Type": "application/json", "x-jwt-payload": SELLER}
 
     try:
         response = requests.post(url, json=payload, headers=headers)
@@ -91,16 +95,10 @@ def place_bid(auction_id=None, amount=None):
         print(f"Error: Invalid auction_id or amount: {e}", file=sys.stderr)
         sys.exit(1)
 
-    payload = {
-        "auction": auction_id,
-        "amount": amount
-    }
+    payload = {"auction": auction_id, "amount": amount}
 
     url = f"{URL.rstrip('/')}/auctions/{auction_id}/bids"
-    headers = {
-        "Content-Type": "application/json",
-        "x-jwt-payload": BUYER
-    }
+    headers = {"Content-Type": "application/json", "x-jwt-payload": BUYER}
 
     try:
         response = requests.post(url, json=payload, headers=headers)
@@ -122,9 +120,7 @@ def show_auction(auction_id=None):
     auction_id = auction_id or os.environ.get("AUCTION", "1")
 
     url = f"{URL.rstrip('/')}/auctions/{auction_id}"
-    headers = {
-        "x-jwt-payload": BUYER
-    }
+    headers = {"x-jwt-payload": BUYER}
 
     try:
         response = requests.get(url, headers=headers)
@@ -138,9 +134,7 @@ def show_auction(auction_id=None):
 def list_auctions():
     """GET /auctions (with auth header)."""
     url = f"{URL.rstrip('/')}/auctions"
-    headers = {
-        "x-jwt-payload": BUYER
-    }
+    headers = {"x-jwt-payload": BUYER}
 
     try:
         response = requests.get(url, headers=headers)
@@ -162,28 +156,32 @@ Examples:
   python3 auctions-curl.py place-bid 1 20
   python3 auctions-curl.py show-auction 1
         """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # create-auction command
-    subparsers.add_parser("create-auction", help="Create an example auction (POST /auctions)")
+    subparsers.add_parser(
+        "create-auction", help="Create an example auction (POST /auctions)"
+    )
 
     # place-bid command
     place_bid_parser = subparsers.add_parser(
-        "place-bid",
-        help="Place a bid on an auction (POST /auctions/:id/bids)"
+        "place-bid", help="Place a bid on an auction (POST /auctions/:id/bids)"
     )
-    place_bid_parser.add_argument("auction_id", nargs="?", help="Auction ID (default: 1)")
+    place_bid_parser.add_argument(
+        "auction_id", nargs="?", help="Auction ID (default: 1)"
+    )
     place_bid_parser.add_argument("amount", nargs="?", help="Bid amount (default: 11)")
 
     # show-auction command
     show_auction_parser = subparsers.add_parser(
-        "show-auction",
-        help="Show a specific auction (GET /auctions/:id)"
+        "show-auction", help="Show a specific auction (GET /auctions/:id)"
     )
-    show_auction_parser.add_argument("auction_id", nargs="?", help="Auction ID (default: 1)")
+    show_auction_parser.add_argument(
+        "auction_id", nargs="?", help="Auction ID (default: 1)"
+    )
 
     # list-auctions command
     subparsers.add_parser("list-auctions", help="GET /auctions (auth header)")
