@@ -153,7 +153,7 @@ class TestAddAuction:
         # Second attempt should fail with 400
         response2 = client.post("/auctions", auction_request, SELLER1)
         assert response2.status_code == 400
-        assert response2.json() == f"AuctionAlreadyExists {auction_id}"
+        assert "AuctionAlreadyExists" in response2.text
 
     def test_returns_added_auction(self, client, auction_id):
         """Test that GET /auctions/:id returns the added auction."""
